@@ -20,6 +20,10 @@ def serialize(plant):
 
 # --- PLANTS ---
 
+@app.route("/")
+def health():
+    return jsonify({"status": "ok"})
+
 @app.route("/api/plants", methods=["GET"])
 def get_plants():
     plants = list(plants_col.find())
