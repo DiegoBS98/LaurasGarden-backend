@@ -4,8 +4,7 @@ from pymongo import MongoClient
 import os
 import uuid
 from datetime import datetime
-from dotenv import load_dotenv
-load_dotenv()
+
 app = Flask(__name__)
 CORS(app)
 
@@ -19,10 +18,6 @@ def serialize(plant):
     return plant
 
 # --- PLANTS ---
-
-@app.route("/")
-def health():
-    return jsonify({"status": "ok"})
 
 @app.route("/api/plants", methods=["GET"])
 def get_plants():
@@ -105,6 +100,24 @@ def delete_watering_entry(plant_id, entry_id):
     plants_col.update_one(
         {"id": plant_id},
         {"$pull": {"watering_log": {"id": entry_id}}}
+    )
+    plant = plants_col.find_one({"id": plant_id})
+    return jsonify(serialize(plant))
+
+@app.route("/api/plants/<plant_id>/water/<entry_id>", methods=["PUT"])
+def update_watering_entry(plant_id, entry_id):
+    plant = plants_col.find_one({"id": plant_id})
+    if not plant:
+        return jsonify({"error": "Plant not found"}), 404
+    body = request.json or {}
+    # Update specific fields of a watering log entry
+    update_fields = {}
+    for field in ["photos", "note", "fertilized"]:
+        if field in body:
+            update_fields[f"watering_log.$.{field}"] = body[field]
+    plants_col.update_one(
+        {"id": plant_id, "watering_log.id": entry_id},
+        {"$set": update_fields}
     )
     plant = plants_col.find_one({"id": plant_id})
     return jsonify(serialize(plant))
